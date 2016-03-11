@@ -1,0 +1,5 @@
+I do not agree with this laboratory name, the given sort
+(in count_sort_serial.c) sort looks like an insertion sort,
+not a count sort.
+
+Anyway it would be nicer to do an effective merge/quick sort
