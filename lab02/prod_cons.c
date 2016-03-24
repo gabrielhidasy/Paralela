@@ -1,53 +1,82 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
-long long unsigned int producer_consumer(int *buffer, int size, int *vec, int n);
-int main() {
+long long unsigned int producer_consumer(int **buffer, int size, int *vec, int n);
+
+int main()
+{
   int num_threads;
-  int num_ciclos;
+  int num_cycles;
   int buffer_size;
   unsigned long long int sum = 0;
-  scanf("%d %d %d",&num_threads,&num_ciclos,&buffer_size);
-  omp_set_num_threads(num_threads);
-  int i=0;
-  int **buffer = malloc(sizeof(int*)*((num_ciclos/2)+1));
-  for(i=0;i<(1+num_ciclos/2);i++) {
+  int i = 0;
+  int y = 0;
+
+  scanf("%d %d %d",&num_threads,&num_cycles,&buffer_size);
+
+#ifdef SERIAL
+  num_threads = 1;
+#endif
+
+  /* Allocate buffers, one for each thread */
+  int **buffer = malloc(sizeof(int*)*num_threads);
+  for (i = 0; i < num_threads; i++) {
     buffer[i] = malloc(sizeof(int)*buffer_size);
+    for (y = 0; y < buffer_size; y++) {
+      buffer[i][y] = 0;
+    }
   }
-  int *vec = malloc(sizeof(int)*num_ciclos);
-  for(i=0; i<num_ciclos;i++)
-    scanf("%d",&vec[i]);
+
+  omp_set_num_threads(num_threads);
+
+  /* Read input */
+  int *vec = malloc(sizeof(int) * num_cycles);
+  for (i=0; i<num_cycles;i++) {
+    scanf("%d", &vec[i]);
+  }
+
+  /* Calculete results */
   double start = omp_get_wtime();
-  #ifndef SINGLE
-  #pragma omp parallel for reduction(+: sum) schedule(static,1)
-  #endif
-  for(i=0;i<num_ciclos;i+=2) {
-    sum+=producer_consumer\
-      (buffer[i/2],buffer_size,&vec[i],1);
+  sum = producer_consumer\
+    (buffer, buffer_size, vec, num_cycles);
+
+  for (i=0; i < num_threads; i++) {
+    free(buffer[i]);
   }
+  free(vec);
+  free(buffer);
   printf("%lld\n%lf\n",sum,omp_get_wtime()-start);
 }
 
-long long unsigned int producer_consumer\
-(int *buffer, int size, int *vec, int n) {
-	int j;
-	long long unsigned int sum = 0;
-        #ifndef SINGLE
-	#pragma omp parallel for
-	#endif
-	  for(j=0;j<size;j++) {
-	    buffer[j] = vec[0] + j*vec[1]; //produtor
-	  }
-	  #ifndef SINGLE
-          #pragma omp parallel for reduction(+: sum)
-	  #endif
-	  for(j=0;j<size;j++)
-	    sum+=buffer[j];
-	return sum;
+long long unsigned int producer_consumer              \
+(int **buffer, int size, int *vec, int n)
+{
+  int i, j;
+  long long unsigned int sum = 0;
+#ifndef SERIAL
+#pragma omp parallel for private(j) reduction(+: sum) schedule(static, 2)
+#endif
+  for(i=0;i<n;i++) {
+    int tid = omp_get_thread_num();
+    /* PRODUTOR */
+    if (i % 2 == 0) {
+      for(j=0;j<size;j++) {
+      buffer[tid][j] = vec[i] + j*vec[i+1];
+    }
+  }
+    else {
+    /* CONSUMIDO */
+      for(j=0;j<size;j++) {
+        sum += buffer[tid][j];
+      }
+    }
+  }
+  return sum;
 }
 
-/*************************************************************
+    /*************************************************************
 /proc/cpuinfo:
+Its a dual-core, hyperthread-enabled core i5, first generation, M520
 gabriel@localhost $ cat /proc/cpuinfo
 processor	: 0
 vendor_id	: GenuineIntel
@@ -156,9 +185,9 @@ clflush size	: 64
 cache_alignment	: 64
 address sizes	: 36 bits physical, 48 bits virtual
 power management:
-**********************************************************/
+    **********************************************************/
 
-/********************************************************
+    /********************************************************
 gprof output
 each sample hit covers 2 byte(s) for 1.07% of 0.94 seconds
 
@@ -172,23 +201,22 @@ index % time    self  children    called     name
 -----------------------------------------------
 
 The producer_consumer function takes most of the time
-************************************************************/
+    ************************************************************/
 
-/*********************************************************
+    /*********************************************************
 Flags de otimização (Testei com o arq3.in, já que é o maior)
 
 Na versão serial
-Sem flag (equivale a O0): 10.083824s
--O0: 10.124098s, sem speedup já que é o mesmo nivel
--O1: 3.205590s, speedup de 3.15826
--O2: 2.711301s, speedup de 3.73403
--O3: 2.031424s, speedup de 4.98374
+Sem flag (equivale a O0): 4.9s
+-O0: 4.8s, sem speedup já que é o mesmo nivel
+-O1: 1.4s, speedup de 3.42
+-O2: 1.4s, speedup de 3.42
+-O3: 1.17s, speedup de  4.10
 
 Na versão paralela
--O0 = Sem flags: 5.834285
--O1: 2.06444, speedup de 2.82608
--O2: 1.98425, speedup de 2.94029
--O3: 1.16993, speedup de 4.98686
-Ainda há ganhos, mas mais modestos em O1 e O2, e O3 teve um salto
-maior dessa vez
-***********************************************************/
+-O0 = Sem flags: 2.5s
+-O1: 0.92s, speedup de 2.71
+-O2: 0.90s, speedup de 2.77
+-O3: 0.76s, speedup de 3.29
+Ainda há ganhos
+    ***********************************************************/
