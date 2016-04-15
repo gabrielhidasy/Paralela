@@ -123,19 +123,42 @@ void *countElPerBin(void *args) {
 
 /*
 |         | Threads    | 1 |    2 |    4 |     8 |    16 |
-| arq1.in | Speedup    | 1 | 0.89 | 0.75 |  0.42 |  0.24 |
-|         | Eficiência | 1 | 0.45 | 0.19 |  0.05 | 0.015 |
+| arq1.in | Speedup    | 1 | 1.13 | 0.75 |  0.42 |  0.24 |
+|         | Eficiência | 1 | 0.56 | 0.19 |  0.05 | 0.015 |
 | arq2.in | Speedup    | 1 | 1.13 | 1.07 |  0.90 |  0.66 |
 |         | Eficiência | 1 | 0.56 | 0.26 | 0.125 |  0.04 |
 | arq3.in | Speedup    | 1 | 1.79 | 2.88 |  2.14 |  2.06 |
 |         | Eficiência | 1 | 0.89 | 0.72 |  0.27 |  0.13 |
 
-Como o programa foi testado em uma maquina quad-core, era esperado que
-a eficiência não iria melhorar nada com mais threads.
+Como o programa foi testado em uma maquina quad-core (Exynos4412
+Cortex A9 1.7), era esperado que a eficiência não iria melhorar nada
+com mais de 4 threads.
 
-O arquivo 1 continha uma entrada muito pequena, é difícil conseguir algum
-speed-up nesse caso
+O arquivo 1 continha uma entrada muito pequena, é difícil conseguir
+algum speed-up nesse caso, não consegui medir speedups consistentes
+(media de 0.9, uma piora, o 1.13 da tabela foi o melhor caso)
 
-Não consegui usar o gprof com nenhuma das entradas, a execução termina rápido
-demais, ele não registra nada
+Não consegui usar o gprof com nenhuma das entradas fornecidas, a
+execução termina rápido demais, ele não registra nada.
+
+Com uma entrada 10x maior que a arq3 (basicamente a entrada 3 repetida 10x)
+
+Rodando com uma thread
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls  Ts/call  Ts/call  name
+ 50.15      0.02     0.02                             countElPerBin
+ 25.07      0.03     0.01                             main
+ 25.07      0.04     0.01                             minmax_t
+
+75% do programa (countElPerBin e minmax_t) são paralelizaveis.
+
+Outra dificuldade para profilar o programa, ao testar em Intel, é o
+TurboBoost, usando perf notei que o clock médio ao rodar o programa
+varia do máximo disponível na minha CPU (3GHz) ao minimo (1.2GHz), os
+efeitos são mais perceptíveis nas tarefas menores (que dão menos tempo
+para o processador aumentar a frequencial).  Testando com programas
+mais longos (>1s) a frequência tende a 2.4GHz em tarefas longas com
+varias threads e 2.8GHz paras as longas single-thread, provavelmente
+para manter a temperatura.
 */

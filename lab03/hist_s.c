@@ -5,36 +5,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-/* funcao que calcula o minimo valor em um vetor */
-double min_val(double * vet,int nval) {
-	int i;
-	double min;
-
-	min = FLT_MAX;
-
-	for(i=0;i<nval;i++) {
-		if(vet[i] < min)
-			min =  vet[i];
-	}
-	
-	return min;
-}
-
-/* funcao que calcula o maximo valor em um vetor */
-double max_val(double * vet, int nval) {
-	int i;
-	double max;
-
-	max = FLT_MIN;
-
-	for(i=0;i<nval;i++) {
-		if(vet[i] > max)
-			max =  vet[i];
-	}
-	
-	return max;
-}
-
 /* conta quantos valores no vetor estao entre o minimo e o maximo passados como parametros */
 int * count(double min, double max, int * vet, int nbins, double h, double * val, int nval) {
 	int i, j, count;
@@ -95,13 +65,13 @@ int main(int argc, char * argv[]) {
 	duracao = ((end.tv_sec * 1000000 + end.tv_usec) - \
 	(start.tv_sec * 1000000 + start.tv_usec));
 
-	printf("%.2lf",min);	
+	printf("%.2lf",min);
 	for(i=1;i<=n;i++) {
 		printf(" %.2lf",min + h*i);
 	}
 	printf("\n");
 
-	/* imprime o histograma calculado */	
+	/* imprime o histograma calculado */
 	printf("%d",vet[0]);
 	for(i=1;i<n;i++) {
 		printf(" %d",vet[i]);
